@@ -1,0 +1,23 @@
+[package]
+name = "akey"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "API keys and Workload Identity Federation profiles for agent tooling: vault-stored, per-process injected, precedence-diagnosed. 100% nativelite - zero third-party dependencies."
+license = "MIT"
+repository = "https://github.com/nativelite/akey"
+keywords = ["credentials", "api-key", "anthropic", "wif", "nativelite"]
+categories = ["command-line-utilities", "authentication"]
+
+# nativelite app rule: zero THIRD-PARTY dependencies; org crates only.
+[dependencies]
+json = { git = "https://github.com/nativelite/json-rs", branch = "main" }
+cred = { git = "https://github.com/nativelite/cred-rs", branch = "main" }
+
+[lib]
+name = "akey"
+path = "src/lib.rs"
+
+[[bin]]
+name = "akey"
+path = "src/main.rs"
