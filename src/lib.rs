@@ -25,6 +25,7 @@
 //! vault and the environment of processes *you* spawn, and nothing else.
 
 pub mod cli;
+pub mod prompt;
 pub mod status;
 pub mod store;
 

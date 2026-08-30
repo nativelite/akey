@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-29
+
+### Changed
+- `akey set <name>` is now **mode-aware** when reading the secret. When stdin
+  is an interactive terminal, it prints a hidden prompt to stderr
+  (`Enter API key for "work" (input hidden): `), reads **one line** with
+  terminal echo disabled — so **Enter finishes** the entry and the secret is
+  never shown — and prints a trailing newline. Previously it read stdin to
+  EOF and echoed the key, so an interactive user who pressed Enter just hung
+  (Enter is not EOF) and saw their secret on screen. When stdin is **piped or
+  redirected** the behavior is unchanged: it reads to EOF verbatim, so
+  `Get-Content key.txt | akey set work` and password-manager pipes work
+  exactly as before. The no-echo terminal mode is toggled with the platform's
+  own FFI (Windows `GetConsoleMode`/`SetConsoleMode`; Unix `termios`) — no new
+  dependency — and is always restored via a `Drop` guard, so a panic or early
+  return cannot leave the terminal with echo off. The secret still flows only
+  into the vault; it is never logged or printed.
+
 ## [0.2.0] - 2026-08-29
 
 ### Added
@@ -52,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Second app of the nativelite **agent terminal** suite (see
 `roadmap/agent-terminal-suite.md` in `nativelite/ops`).
 
-[Unreleased]: https://github.com/nativelite/akey/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/nativelite/akey/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/nativelite/akey/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/nativelite/akey/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nativelite/akey/releases/tag/v0.1.0

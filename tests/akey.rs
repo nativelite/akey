@@ -151,6 +151,31 @@ fn secret_input_is_cleaned_of_boms_and_whitespace() {
     assert_eq!(clean_secret_input("\u{feff}\n"), "");
 }
 
+// --- set input path (piped seam) -------------------------------------------
+
+#[test]
+fn piped_set_input_reads_to_eof_verbatim() {
+    use akey::prompt::read_secret_from;
+    use akey::store::clean_secret_input;
+
+    // Not a TTY -> read the whole reader to EOF, byte-for-byte as before.
+    // Multi-line/no-trailing-newline content is preserved by the read; the
+    // store's clean step then trims + strips the BOM exactly as it does for
+    // the real `set` path.
+    let raw = "\u{feff}sk-piped-123\r\n";
+    let mut reader = std::io::Cursor::new(raw.as_bytes());
+    let got = read_secret_from(&mut reader, false, "work").unwrap();
+    assert_eq!(got, raw, "piped read must return the bytes verbatim");
+    assert_eq!(clean_secret_input(&got), "sk-piped-123");
+
+    // An empty pipe yields empty input (the caller treats it as "nothing
+    // stored"), and never blocks waiting for a TTY line.
+    let mut empty = std::io::Cursor::new(Vec::new());
+    let got = read_secret_from(&mut empty, false, "work").unwrap();
+    assert_eq!(got, "");
+    assert!(clean_secret_input(&got).is_empty());
+}
+
 // --- status engine ---------------------------------------------------------
 
 fn env_of(pairs: &[(&str, &str)]) -> HashMap<String, String> {

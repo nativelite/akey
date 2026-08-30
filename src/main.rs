@@ -3,7 +3,6 @@
 
 use akey::cli::{parse, Command, USAGE};
 use akey::store;
-use std::io::Read;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -31,12 +30,10 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         Command::Set { name } => {
-            eprintln!(
-                "paste the key for {name:?} and press Enter \
-                 (input is not hidden; you can also pipe it in):"
-            );
-            let mut input = String::new();
-            std::io::stdin().read_to_string(&mut input)?;
+            // Mode-aware read: an interactive TTY gets a hidden one-line
+            // prompt (Enter finishes; the secret never echoes); a pipe or
+            // redirect reads to EOF exactly as before.
+            let input = akey::prompt::read_secret(&name)?;
             let secret = store::clean_secret_input(&input);
             if secret.is_empty() {
                 eprintln!("akey: empty input; nothing stored");

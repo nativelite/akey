@@ -51,8 +51,10 @@ that case out explicitly.
   BOM when piping into native programs — akey strips it, because a key that
   secretly starts with U+FEFF fails at the API with a baffling 401. (Found
   by our own smoke test.)
-- `set` reads stdin with echo; prefer piping from a password manager. A
-  no-echo prompt is a planned follow-up.
+- `set` is mode-aware: run interactively it shows a **hidden prompt** and
+  reads one line with terminal echo disabled (Enter finishes; the key is
+  never shown), and it still accepts piped input (`Get-Content key.txt |
+  akey set work`, or a password-manager pipe), reading to EOF unchanged.
 - Linux inherits `cred`'s honest state: vault calls return `Unsupported`
   until the Secret Service backend lands.
 
