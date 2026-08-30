@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-29
+
+### Added
+- `akey::resolve(target) -> io::Result<Vec<(String, String)>>` — a library
+  seam returning the environment variables to **set** for a target (the same
+  mapping `run` injects: a key name -> `ANTHROPIC_API_KEY`; `wif:<name>` ->
+  the federation variables). Lets an in-process caller (e.g. amux's native
+  `--identity`) obtain the env and inject it itself, without akey spawning.
+  The returned values are secret; the doc comment states the caller is
+  trusted and must not log/print/persist them. akey never logs the values
+  and its vault posture is unchanged.
+
+### Changed
+- `run` now calls `resolve` for the env vars to set (extract-and-reuse); its
+  external behavior is byte-identical, including clearing leftover static-key
+  vars before injecting a federation profile.
+
 ## [0.1.0] - 2026-08-28
 
 ### Added
@@ -35,5 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Second app of the nativelite **agent terminal** suite (see
 `roadmap/agent-terminal-suite.md` in `nativelite/ops`).
 
-[Unreleased]: https://github.com/nativelite/akey/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nativelite/akey/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nativelite/akey/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nativelite/akey/releases/tag/v0.1.0

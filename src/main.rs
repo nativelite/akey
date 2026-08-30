@@ -2,7 +2,7 @@
 //! talks to the vault, spawns processes, and prints.
 
 use akey::cli::{parse, Command, USAGE};
-use akey::store::{self, Resolved};
+use akey::store;
 use std::io::Read;
 use std::process::ExitCode;
 
@@ -109,28 +109,27 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         Command::Run { target, cmd } => {
-            let Some(resolved) = store::resolve(&target)? else {
-                eprintln!("akey: no key or WIF profile named {target:?}");
-                return Ok(ExitCode::FAILURE);
+            // Reuse the library seam so `run` and amux inject identical env.
+            let pairs = match akey::resolve(&target) {
+                Ok(p) => p,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    eprintln!("akey: no key or WIF profile named {target:?}");
+                    return Ok(ExitCode::FAILURE);
+                }
+                Err(e) => return Err(e),
             };
             let mut child = std::process::Command::new(&cmd[0]);
             child.args(&cmd[1..]);
-            match resolved {
-                Resolved::Key(secret) => {
-                    child.env(
-                        "ANTHROPIC_API_KEY",
-                        String::from_utf8_lossy(&secret).as_ref(),
-                    );
-                }
-                Resolved::Wif(profile) => {
-                    // Documented footgun: a leftover static key would shadow
-                    // these vars, so clear it for the child.
-                    child.env_remove("ANTHROPIC_API_KEY");
-                    child.env_remove("ANTHROPIC_AUTH_TOKEN");
-                    for (k, v) in profile.env_pairs() {
-                        child.env(k, v);
-                    }
-                }
+            // A federation profile never sets ANTHROPIC_API_KEY; a static key
+            // sets exactly that. Documented footgun: a leftover static key
+            // would shadow the federation vars, so clear the static-key vars
+            // for the child before injecting a profile.
+            if !pairs.iter().any(|(k, _)| k == "ANTHROPIC_API_KEY") {
+                child.env_remove("ANTHROPIC_API_KEY");
+                child.env_remove("ANTHROPIC_AUTH_TOKEN");
+            }
+            for (k, v) in pairs {
+                child.env(k, v);
             }
             let status = child.status()?;
             Ok(ExitCode::from(

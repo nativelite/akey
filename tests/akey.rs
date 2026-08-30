@@ -246,6 +246,42 @@ mod windows_vault {
     }
 
     #[test]
+    fn resolve_seam_maps_a_key_to_anthropic_api_key() {
+        let key = n("rk");
+        store::set_key(&key, b"sk-resolve-789").unwrap();
+
+        let pairs = akey::resolve(&key).unwrap();
+        let names: Vec<&str> = pairs.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(names, ["ANTHROPIC_API_KEY"]);
+        assert_eq!(pairs[0].1, "sk-resolve-789");
+
+        assert!(store::remove(&key).unwrap());
+    }
+
+    #[test]
+    fn resolve_seam_maps_a_wif_to_the_five_federation_vars() {
+        let wif = n("rw");
+        store::set_wif(&wif, &super::profile()).unwrap();
+
+        let pairs = akey::resolve(&format!("wif:{wif}")).unwrap();
+        let names: Vec<&str> = pairs.iter().map(|(k, _)| k.as_str()).collect();
+        // profile() carries a workspace, so all five federation vars appear.
+        for var in store::WIF_ENV {
+            assert!(names.contains(&var), "missing {var} in {names:?}");
+        }
+        // The seam sets only the federation vars — never a static key.
+        assert!(!names.contains(&"ANTHROPIC_API_KEY"));
+
+        assert!(store::remove(&wif).unwrap());
+    }
+
+    #[test]
+    fn resolve_seam_reports_a_missing_target_as_not_found() {
+        let err = akey::resolve(&n("rmissing")).unwrap_err();
+        assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+    }
+
+    #[test]
     fn child_process_sees_the_injected_key() {
         let key = n("inject");
         store::set_key(&key, b"sk-injected-456").unwrap();

@@ -27,3 +27,42 @@
 pub mod cli;
 pub mod status;
 pub mod store;
+
+use std::io;
+
+/// Resolve a credential `target` to the environment variables to **set** for
+/// it — the same mapping `akey run` injects, exposed as a library seam so an
+/// in-process caller can inject them itself instead of having akey spawn:
+///
+/// * a key name        -> `[("ANTHROPIC_API_KEY", <vault value>)]`
+/// * `wif:<name>`      -> the federation variables from the stored profile
+///   (four required, plus `ANTHROPIC_WORKSPACE_ID` when the profile has one)
+///
+/// A plain name resolves a key first, then a WIF profile, exactly as `run`
+/// does. A missing target is an `io::ErrorKind::NotFound` error.
+///
+/// This is the WIF profile's stored **config** values (as `run` injects
+/// them), never a minted token — akey does not perform the RFC 7523
+/// exchange.
+///
+/// # Security
+///
+/// The returned pairs contain **secret material** (a static key's value).
+/// This seam exists for a trusted, in-process caller (e.g. amux injecting
+/// credentials into the agent it spawns on its pty): the caller MUST treat
+/// the values as secret and MUST NOT log, print, or persist them. akey
+/// itself never logs or prints the values, and this function does not change
+/// akey's on-disk / vault posture — it only reads the vault, as `run` does.
+pub fn resolve(target: &str) -> io::Result<Vec<(String, String)>> {
+    match store::resolve(target)? {
+        Some(store::Resolved::Key(secret)) => Ok(vec![(
+            "ANTHROPIC_API_KEY".to_string(),
+            String::from_utf8_lossy(&secret).into_owned(),
+        )]),
+        Some(store::Resolved::Wif(profile)) => Ok(profile.env_pairs()),
+        None => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("no key or WIF profile named {target:?}"),
+        )),
+    }
+}

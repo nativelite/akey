@@ -1,6 +1,6 @@
 [package]
 name = "akey"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.70"
 description = "API keys and Workload Identity Federation profiles for agent tooling: vault-stored, per-process injected, precedence-diagnosed. 100% nativelite - zero third-party dependencies."
