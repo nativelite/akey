@@ -69,8 +69,7 @@ end-to-end child process that must see the injected `ANTHROPIC_API_KEY`.
 ## Development
 
 ```bash
-python dev.py check   # dependency guard + cargo test (what CI runs)
+python dev.py check   # dependency guard + cargo test (the pre-push gate)
 ```
 
-CI note: until the nativelite crates go public, CI needs an org-read token
-(`ORG_READ_TOKEN` secret) to fetch the private git dependencies.
+No CI runs right now (GitHub Actions are off, 2026-08-30); the local `dev.py check` is the gate. A lean CI may return once the nativelite crates are public — it would need an org-read token to fetch the private git deps.
