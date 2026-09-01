@@ -29,7 +29,7 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
             print!("{USAGE}");
             Ok(ExitCode::SUCCESS)
         }
-        Command::Set { name } => {
+        Command::Set { name, env } => {
             // Mode-aware read: an interactive TTY gets a hidden one-line
             // prompt (Enter finishes; the secret never echoes); a pipe or
             // redirect reads to EOF exactly as before.
@@ -40,11 +40,20 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
             store::set_key(&name, secret.as_bytes())?;
+            // Record the env var this key injects (if given). Absent ⇒ resolves to
+            // the default ANTHROPIC_API_KEY, so existing keys are unaffected.
+            if let Some(var) = &env {
+                store::set_key_env(&name, var)?;
+            }
+            let via = env
+                .as_deref()
+                .map(|v| format!(" (injects {v})"))
+                .unwrap_or_default();
             if store::default()?.is_none() {
                 store::set_default(&name)?;
-                eprintln!("stored {name:?} in the OS vault (and made it the default)");
+                eprintln!("stored {name:?} in the OS vault{via} (and made it the default)");
             } else {
-                eprintln!("stored {name:?} in the OS vault");
+                eprintln!("stored {name:?} in the OS vault{via}");
             }
             Ok(ExitCode::SUCCESS)
         }
@@ -57,7 +66,8 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
                 } else {
                     " "
                 };
-                println!("{mark} key  {k}");
+                let var = l.envs.get(k).map(String::as_str).unwrap_or(store::DEFAULT_ENV);
+                println!("{mark} key  {k:<16} -> {var}");
             }
             for w in &l.wifs {
                 let mark = if default == format!("wif.{w}") {

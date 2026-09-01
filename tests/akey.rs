@@ -31,9 +31,26 @@ fn parse_basic_commands() {
     assert_eq!(
         parse(&args(&["set", "work"])).unwrap(),
         Command::Set {
-            name: "work".into()
+            name: "work".into(),
+            env: None,
         }
     );
+    // `--for <preset>` maps to the service's env var; `--env <VAR>` is literal.
+    assert_eq!(
+        parse(&args(&["set", "hf", "--for", "huggingface"])).unwrap(),
+        Command::Set {
+            name: "hf".into(),
+            env: Some("HF_TOKEN".into()),
+        }
+    );
+    assert_eq!(
+        parse(&args(&["set", "tok", "--env", "MY_TOKEN"])).unwrap(),
+        Command::Set {
+            name: "tok".into(),
+            env: Some("MY_TOKEN".into()),
+        }
+    );
+    assert!(parse(&args(&["set", "x", "--for", "nope"])).is_err());
     assert_eq!(parse(&args(&["ls"])).unwrap(), Command::Ls);
     assert_eq!(
         parse(&args(&["rm", "old"])).unwrap(),
@@ -231,6 +248,7 @@ fn status_reports_vault_contents() {
         keys: vec!["work".into()],
         wifs: vec!["prod".into()],
         default: Some("key.work".into()),
+        envs: std::collections::BTreeMap::new(),
     };
     let text = joined(&status::report(&env_of(&[]), Some(&listing)));
     assert!(text.contains("1 key(s) [work]"), "{text}");

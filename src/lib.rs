@@ -56,10 +56,13 @@ use std::io;
 /// akey's on-disk / vault posture — it only reads the vault, as `run` does.
 pub fn resolve(target: &str) -> io::Result<Vec<(String, String)>> {
     match store::resolve(target)? {
-        Some(store::Resolved::Key(secret)) => Ok(vec![(
-            "ANTHROPIC_API_KEY".to_string(),
-            String::from_utf8_lossy(&secret).into_owned(),
-        )]),
+        Some(store::Resolved::Key(secret)) => {
+            // A key injects its stored env var (e.g. `HF_TOKEN`), or Anthropic's
+            // `ANTHROPIC_API_KEY` when none was set — the historical default.
+            let var = store::key_env(target)?
+                .unwrap_or_else(|| store::DEFAULT_ENV.to_string());
+            Ok(vec![(var, String::from_utf8_lossy(&secret).into_owned())])
+        }
         Some(store::Resolved::Wif(profile)) => Ok(profile.env_pairs()),
         None => Err(io::Error::new(
             io::ErrorKind::NotFound,

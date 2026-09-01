@@ -104,6 +104,52 @@ pub fn set_key(name: &str, secret: &[u8]) -> io::Result<()> {
     cred::set(SERVICE, &format!("key.{name}"), secret)
 }
 
+/// The environment variable a plain key injects when none is stored — Anthropic's
+/// `ANTHROPIC_API_KEY`, the historical behavior. A key stored with `--for`/`--env`
+/// overrides it (see [`set_key_env`]).
+pub const DEFAULT_ENV: &str = "ANTHROPIC_API_KEY";
+
+/// Built-in service presets: `akey set <name> --for <service>` stores the mapped
+/// environment variable so the key lands where that tool reads it. `--env <VAR>`
+/// overrides with any name for anything not listed here.
+pub const PRESETS: &[(&str, &str)] = &[
+    ("anthropic", "ANTHROPIC_API_KEY"),
+    ("huggingface", "HF_TOKEN"),
+    ("github", "GITHUB_TOKEN"),
+    ("openai", "OPENAI_API_KEY"),
+    ("gemini", "GEMINI_API_KEY"),
+    ("groq", "GROQ_API_KEY"),
+    ("mistral", "MISTRAL_API_KEY"),
+    ("openrouter", "OPENROUTER_API_KEY"),
+];
+
+/// Resolve a preset service name (case-insensitive, with a few aliases) to its
+/// environment variable. `None` for an unknown service.
+pub fn preset_env(service: &str) -> Option<&'static str> {
+    let s = service.to_ascii_lowercase();
+    let alias = match s.as_str() {
+        "claude" => "anthropic",
+        "hf" => "huggingface",
+        "gh" => "github",
+        "google" => "gemini",
+        other => other,
+    };
+    PRESETS.iter().find(|(name, _)| *name == alias).map(|(_, var)| *var)
+}
+
+/// Store the environment variable a key injects (its `keyenv.<name>` sidecar).
+/// Kept separate from the secret so existing keys stay valid and the value stays
+/// resolvable without touching the secret.
+pub fn set_key_env(name: &str, var: &str) -> io::Result<()> {
+    cred::set(SERVICE, &format!("keyenv.{name}"), var.as_bytes())
+}
+
+/// The environment variable a key injects, if one was stored for it.
+pub fn key_env(name: &str) -> io::Result<Option<String>> {
+    Ok(cred::get(SERVICE, &format!("keyenv.{name}"))?
+        .map(|b| String::from_utf8_lossy(&b).into_owned()))
+}
+
 pub fn set_wif(name: &str, profile: &WifProfile) -> io::Result<()> {
     cred::set(
         SERVICE,
@@ -125,6 +171,9 @@ pub fn remove(name: &str) -> io::Result<bool> {
             }
         }
     }
+    // Drop the key's env-var sidecar too, if any (never counts as a deletion on
+    // its own — a bare sidecar without a key shouldn't exist).
+    let _ = cred::delete(SERVICE, &format!("keyenv.{plain}"));
     Ok(removed)
 }
 
@@ -201,21 +250,33 @@ pub struct Listing {
     pub keys: Vec<String>,
     pub wifs: Vec<String>,
     pub default: Option<String>,
+    /// Per-key env-var override (`name → VAR`); absent ⇒ the key uses
+    /// [`DEFAULT_ENV`]. Only keys with a stored override appear here.
+    pub envs: std::collections::BTreeMap<String, String>,
 }
 
 pub fn list() -> io::Result<Listing> {
     let mut keys = Vec::new();
     let mut wifs = Vec::new();
     for entry in cred::entries(SERVICE)? {
+        // `keyenv.` and `key.` share no prefix (the 4th byte differs), so the
+        // env-var sidecars never masquerade as keys here.
         if let Some(k) = entry.strip_prefix("key.") {
             keys.push(k.to_string());
         } else if let Some(w) = entry.strip_prefix("wif.") {
             wifs.push(w.to_string());
         }
     }
+    let mut envs = std::collections::BTreeMap::new();
+    for k in &keys {
+        if let Some(var) = key_env(k)? {
+            envs.insert(k.clone(), var);
+        }
+    }
     Ok(Listing {
         keys,
         wifs,
         default: default()?,
+        envs,
     })
 }

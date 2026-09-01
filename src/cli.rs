@@ -5,9 +5,12 @@ use crate::store::WifProfile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    /// Store a key read from stdin under `name`.
+    /// Store a key read from stdin under `name`, optionally with the environment
+    /// variable it injects (`--for <service>` preset or `--env <VAR>`); `None` ⇒
+    /// the historical `ANTHROPIC_API_KEY`.
     Set {
         name: String,
+        env: Option<String>,
     },
     /// List keys, WIF profiles, and the default.
     Ls,
@@ -41,18 +44,65 @@ pub enum Command {
 pub const USAGE: &str = "\
 akey — API keys & WIF profiles for agent tooling (vault-stored)
 
-  akey set <name>                 store a key (read from stdin) in the OS vault
-  akey ls                         list keys, WIF profiles, and the default
+  akey set <name> [--for <svc> | --env <VAR>]
+                                  store a key (read from stdin) in the OS vault.
+                                  --for maps a preset service to its env var
+                                  (huggingface->HF_TOKEN, github->GITHUB_TOKEN,
+                                  openai->OPENAI_API_KEY, ...); --env sets any var.
+                                  Default (neither): ANTHROPIC_API_KEY.
+  akey ls                         list keys (with their env var), WIF profiles, default
   akey rm <name>                  delete a key or WIF profile
   akey use <name>                 make <name> (or wif:<name>) the default
   akey helper [<name>]            print the default/named key (apiKeyHelper)
   akey run <target> -- <cmd...>   run <cmd> with credentials injected:
-                                    <name>      -> ANTHROPIC_API_KEY
+                                    <name>      -> its env var (default ANTHROPIC_API_KEY)
                                     wif:<name>  -> the five ANTHROPIC_* federation vars
   akey status                     which credential source wins in this shell, and why
   akey wif set <name> --rule fdrl_... --org <uuid> --svc svac_...
               [--workspace wrkspc_...] --token-file <path>
 ";
+
+/// Parse `set <name> [--for <service> | --env <VAR>]`. The env-var choice is
+/// resolved here (a preset is looked up now) so the command carries the final
+/// variable, or `None` for the default.
+fn parse_set(rest: &[&String]) -> Result<Command, String> {
+    const USAGE: &str = "usage: akey set <name> [--for <service> | --env <VAR>]";
+    let mut name: Option<String> = None;
+    let mut env: Option<String> = None;
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--env" => {
+                let v = rest.get(i + 1).ok_or(USAGE)?;
+                env = Some((*v).clone());
+                i += 2;
+            }
+            "--for" => {
+                let svc = rest.get(i + 1).ok_or(USAGE)?;
+                let var = crate::store::preset_env(svc).ok_or_else(|| {
+                    let known: Vec<&str> =
+                        crate::store::PRESETS.iter().map(|(n, _)| *n).collect();
+                    format!(
+                        "akey set: unknown --for service {svc:?} (known: {})",
+                        known.join(", ")
+                    )
+                })?;
+                env = Some(var.to_string());
+                i += 2;
+            }
+            s if s.starts_with('-') => return Err(format!("akey set: unexpected flag {s:?}\n{USAGE}")),
+            _ if name.is_some() => return Err(USAGE.into()),
+            _ => {
+                name = Some(rest[i].clone());
+                i += 1;
+            }
+        }
+    }
+    match name {
+        Some(name) => Ok(Command::Set { name, env }),
+        None => Err(USAGE.into()),
+    }
+}
 
 pub fn parse(args: &[String]) -> Result<Command, String> {
     let mut it = args.iter();
@@ -68,9 +118,7 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         }
     };
     match cmd {
-        "set" => Ok(Command::Set {
-            name: one_name("set")?,
-        }),
+        "set" => parse_set(&rest),
         "ls" => Ok(Command::Ls),
         "rm" => Ok(Command::Rm {
             name: one_name("rm")?,
