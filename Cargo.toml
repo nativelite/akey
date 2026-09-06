@@ -1,5 +1,5 @@
 [package]
-name = "akey"
+name = "nativelite-akey"
 version = "0.2.1"
 edition = "2021"
 rust-version = "1.70"
@@ -11,8 +11,8 @@ categories = ["command-line-utilities", "authentication"]
 
 # nativelite app rule: zero THIRD-PARTY dependencies; org crates only.
 [dependencies]
-json = { git = "https://github.com/nativelite/json-rs", branch = "main" }
-cred = { git = "https://github.com/nativelite/cred-rs", branch = "main" }
+json = { package = "nativelite-json", version = "0.1", path = "../json-rs" }
+cred = { package = "nativelite-cred", version = "0.1", path = "../cred-rs" }
 
 [lib]
 name = "akey"

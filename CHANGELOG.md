@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `akey::resolve(target) -> io::Result<Vec<(String, String)>>`: a library
   seam returning the environment variables to **set** for a target (the same
   mapping `run` injects: a key name -> `ANTHROPIC_API_KEY`; `wif:<name>` ->
-  the federation variables). Lets an in-process caller (e.g. amux's native
+  the federation variables). Lets an in-process caller (e.g. atrium's native
   `--identity`) obtain the env and inject it itself, without akey spawning.
   The returned values are secret; the doc comment states the caller is
   trusted and must not log/print/persist them. akey never logs the values

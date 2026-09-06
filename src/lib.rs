@@ -49,7 +49,7 @@ use std::io;
 /// # Security
 ///
 /// The returned pairs contain **secret material** (a static key's value).
-/// This seam exists for a trusted, in-process caller (e.g. amux injecting
+/// This seam exists for a trusted, in-process caller (e.g. atrium injecting
 /// credentials into the agent it spawns on its pty): the caller MUST treat
 /// the values as secret and MUST NOT log, print, or persist them. akey
 /// itself never logs or prints the values, and this function does not change

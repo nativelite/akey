@@ -120,7 +120,7 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         Command::Run { target, cmd } => {
-            // Reuse the library seam so `run` and amux inject identical env.
+            // Reuse the library seam so `run` and atrium inject identical env.
             let pairs = match akey::resolve(&target) {
                 Ok(p) => p,
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
