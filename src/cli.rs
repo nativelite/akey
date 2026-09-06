@@ -22,7 +22,7 @@ pub enum Command {
     Use {
         name: String,
     },
-    /// Print the default (or named) key — the `apiKeyHelper` contract.
+    /// Print the default (or named) key: the `apiKeyHelper` contract.
     Helper {
         name: Option<String>,
     },
@@ -42,7 +42,7 @@ pub enum Command {
 }
 
 pub const USAGE: &str = "\
-akey — API keys & WIF profiles for agent tooling (vault-stored)
+akey: API keys & WIF profiles for agent tooling (vault-stored)
 
   akey set <name> [--for <svc> | --env <VAR>]
                                   store a key (read from stdin) in the OS vault.

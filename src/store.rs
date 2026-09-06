@@ -1,10 +1,10 @@
 //! Vault layout over the `cred` crate. Everything akey persists lives in
 //! the OS credential vault under one service namespace:
 //!
-//! * `key.<name>`  — an API key (the secret bytes as entered)
-//! * `wif.<name>`  — a WIF profile serialized as JSON (IDs and a token-file
+//! * `key.<name>`  : an API key (the secret bytes as entered)
+//! * `wif.<name>`  : a WIF profile serialized as JSON (IDs and a token-file
 //!   path; kept in the vault anyway so there is exactly one store)
-//! * `default`     — the entry name (`key.x` or `wif.x`) that `helper` and
+//! * `default`     : the entry name (`key.x` or `wif.x`) that `helper` and
 //!   `run` use when none is named
 
 use std::io;
@@ -21,7 +21,7 @@ pub const WIF_ENV: [&str; 5] = [
     "ANTHROPIC_IDENTITY_TOKEN_FILE",
 ];
 
-/// A named Workload Identity Federation profile — the client-side inputs of
+/// A named Workload Identity Federation profile: the client-side inputs of
 /// the documented exchange. Not the exchange itself: tokens are the SDKs'
 /// job.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,7 +87,7 @@ pub enum Resolved {
 
 /// Clean pasted/piped key input: strip surrounding whitespace and any BOMs.
 /// Windows PowerShell in particular prepends U+FEFF when piping text into a
-/// native program, and `str::trim` does not remove it — a stored key that
+/// native program, and `str::trim` does not remove it; a stored key that
 /// invisibly starts with a BOM fails at the API with a baffling 401.
 pub fn clean_secret_input(input: &str) -> &str {
     let mut s = input.trim();
@@ -104,7 +104,7 @@ pub fn set_key(name: &str, secret: &[u8]) -> io::Result<()> {
     cred::set(SERVICE, &format!("key.{name}"), secret)
 }
 
-/// The environment variable a plain key injects when none is stored — Anthropic's
+/// The environment variable a plain key injects when none is stored: Anthropic's
 /// `ANTHROPIC_API_KEY`, the historical behavior. A key stored with `--for`/`--env`
 /// overrides it (see [`set_key_env`]).
 pub const DEFAULT_ENV: &str = "ANTHROPIC_API_KEY";
@@ -172,7 +172,7 @@ pub fn remove(name: &str) -> io::Result<bool> {
         }
     }
     // Drop the key's env-var sidecar too, if any (never counts as a deletion on
-    // its own — a bare sidecar without a key shouldn't exist).
+    // its own; a bare sidecar without a key shouldn't exist).
     let _ = cred::delete(SERVICE, &format!("keyenv.{plain}"));
     Ok(removed)
 }
@@ -225,7 +225,7 @@ pub fn default() -> io::Result<Option<String>> {
     Ok(cred::get(SERVICE, "default")?.map(|b| String::from_utf8_lossy(&b).into_owned()))
 }
 
-/// The default or a named key's secret — the `apiKeyHelper` contract.
+/// The default or a named key's secret: the `apiKeyHelper` contract.
 pub fn helper_secret(name: Option<&str>) -> io::Result<Option<Vec<u8>>> {
     let entry = match name {
         Some(n) => format!("key.{n}"),

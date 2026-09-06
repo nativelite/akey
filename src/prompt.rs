@@ -1,4 +1,4 @@
-//! Interactive, hidden secret entry for `akey set` — with a piped-input
+//! Interactive, hidden secret entry for `akey set`, with a piped-input
 //! fast path that is byte-for-byte the old behavior.
 //!
 //! `akey set <name>` used to `read_to_string` stdin to EOF and echo the
@@ -9,7 +9,7 @@
 //!   line with terminal echo disabled (Enter finishes; the secret is never
 //!   shown), then print a trailing newline to stderr.
 //! * **stdin is not a TTY (piped/redirected):** read to EOF exactly as
-//!   before — `Get-Content key.txt | akey set work` and password-manager
+//!   before: `Get-Content key.txt | akey set work` and password-manager
 //!   pipes are unchanged.
 //!
 //! The no-echo terminal mode is toggled with the platform's own FFI (no
@@ -36,12 +36,12 @@ pub fn read_secret(label: &str) -> io::Result<String> {
 /// The testable seam: given a reader, whether that reader is a TTY, and a
 /// prompt label, produce the raw secret input.
 ///
-/// * `is_tty == false` (piped/redirected): read the reader to EOF — the
+/// * `is_tty == false` (piped/redirected): read the reader to EOF, the
 ///   verbatim pre-0.2.1 behavior.
 /// * `is_tty == true` (interactive): prompt on stderr and read one hidden
 ///   line from the real console (the `reader` argument is unused in this
-///   branch — a live TTY reads from the OS console handle, not a captured
-///   stream — which is exactly why tests exercise the piped branch and the
+///   branch (a live TTY reads from the OS console handle, not a captured
+///   stream), which is exactly why tests exercise the piped branch and the
 ///   FFI is validated by the restore guard + review).
 pub fn read_secret_from<R: Read>(reader: &mut R, is_tty: bool, label: &str) -> io::Result<String> {
     if is_tty {
@@ -58,7 +58,7 @@ pub fn read_secret_from<R: Read>(reader: &mut R, is_tty: bool, label: &str) -> i
 fn read_hidden_line(label: &str) -> io::Result<String> {
     eprint!("Enter API key for {label:?} (input hidden): ");
     // The guard disables echo now and restores the original mode when it
-    // drops — on success, on `?`, or on panic.
+    // drops: on success, on `?`, or on panic.
     let mut guard = sys::NoEcho::enter()?;
     let line = guard.read_line();
     // The user's Enter was not echoed; move the cursor to the next line so
@@ -70,8 +70,8 @@ fn read_hidden_line(label: &str) -> io::Result<String> {
 // --- platform edge ---------------------------------------------------------
 //
 // Our own minimal FFI, mirroring `rawterm-rs` but without depending on it:
-// * `stdin_is_tty()` — TTY detection.
-// * `NoEcho` — a guard that disables echo on `enter()` and restores the
+// * `stdin_is_tty()`: TTY detection.
+// * `NoEcho`: a guard that disables echo on `enter()` and restores the
 //   saved mode on `Drop`, and reads one line while echo is off.
 
 #[cfg(windows)]
@@ -155,7 +155,7 @@ mod sys {
         }
 
         /// Read one line (through the terminating Enter) as UTF-8, without
-        /// the trailing CR/LF — `store::clean_secret_input` trims anyway,
+        /// the trailing CR/LF; `store::clean_secret_input` trims anyway,
         /// but this keeps the return value a single clean line.
         pub fn read_line(&mut self) -> io::Result<String> {
             let mut units = [0u16; 4096];
@@ -207,7 +207,7 @@ mod sys {
 
     // termios layout and the ECHO flag are per-OS; mirror rawterm-rs's plat
     // split. We only ever clear/restore ECHO, so we need just that flag and
-    // the struct size — but we save and restore the whole struct verbatim.
+    // the struct size, but we save and restore the whole struct verbatim.
     #[cfg(target_os = "linux")]
     mod plat {
         pub type Flag = u32;

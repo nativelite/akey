@@ -1,6 +1,6 @@
 //! `akey status`: walk the SDKs' documented five-tier credential
 //! precedence for a given environment and say which source wins and why.
-//! Pure — takes an env map and a vault listing, returns report lines — so
+//! Pure: takes an env map and a vault listing, returns report lines, so
 //! the whole diagnosis is testable.
 //!
 //! Documented order (first hit wins): constructor arguments (invisible to
@@ -44,7 +44,7 @@ pub fn report(env: &HashMap<String, String>, vault: Option<&Listing>) -> Vec<Str
     };
 
     tier(
-        "1. constructor arguments — only visible inside an application".into(),
+        "1. constructor arguments (only visible inside an application)".into(),
         false,
         &mut out,
         &mut winner,
@@ -118,7 +118,7 @@ pub fn report(env: &HashMap<String, String>, vault: Option<&Listing>) -> Vec<Str
             if !fed_present.is_empty() && !fed_complete {
                 out.push(String::new());
                 out.push(format!(
-                    "!! federation is partially configured — missing: {}",
+                    "!! federation is partially configured, missing: {}",
                     fed_missing.join(", ")
                 ));
             }
