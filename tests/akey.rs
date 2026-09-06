@@ -312,7 +312,7 @@ mod windows_vault {
         for var in store::WIF_ENV {
             assert!(names.contains(&var), "missing {var} in {names:?}");
         }
-        // The seam sets only the federation vars — never a static key.
+        // The seam sets only the federation vars, never a static key.
         assert!(!names.contains(&"ANTHROPIC_API_KEY"));
 
         assert!(store::remove(&wif).unwrap());
