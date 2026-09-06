@@ -66,7 +66,11 @@ fn dispatch(cmd: Command) -> std::io::Result<ExitCode> {
                 } else {
                     " "
                 };
-                let var = l.envs.get(k).map(String::as_str).unwrap_or(store::DEFAULT_ENV);
+                let var = l
+                    .envs
+                    .get(k)
+                    .map(String::as_str)
+                    .unwrap_or(store::DEFAULT_ENV);
                 println!("{mark} key  {k:<16} -> {var}");
             }
             for w in &l.wifs {

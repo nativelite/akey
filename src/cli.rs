@@ -80,8 +80,7 @@ fn parse_set(rest: &[&String]) -> Result<Command, String> {
             "--for" => {
                 let svc = rest.get(i + 1).ok_or(USAGE)?;
                 let var = crate::store::preset_env(svc).ok_or_else(|| {
-                    let known: Vec<&str> =
-                        crate::store::PRESETS.iter().map(|(n, _)| *n).collect();
+                    let known: Vec<&str> = crate::store::PRESETS.iter().map(|(n, _)| *n).collect();
                     format!(
                         "akey set: unknown --for service {svc:?} (known: {})",
                         known.join(", ")
@@ -90,7 +89,9 @@ fn parse_set(rest: &[&String]) -> Result<Command, String> {
                 env = Some(var.to_string());
                 i += 2;
             }
-            s if s.starts_with('-') => return Err(format!("akey set: unexpected flag {s:?}\n{USAGE}")),
+            s if s.starts_with('-') => {
+                return Err(format!("akey set: unexpected flag {s:?}\n{USAGE}"))
+            }
             _ if name.is_some() => return Err(USAGE.into()),
             _ => {
                 name = Some(rest[i].clone());

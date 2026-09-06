@@ -134,7 +134,10 @@ pub fn preset_env(service: &str) -> Option<&'static str> {
         "google" => "gemini",
         other => other,
     };
-    PRESETS.iter().find(|(name, _)| *name == alias).map(|(_, var)| *var)
+    PRESETS
+        .iter()
+        .find(|(name, _)| *name == alias)
+        .map(|(_, var)| *var)
 }
 
 /// Store the environment variable a key injects (its `keyenv.<name>` sidecar).
